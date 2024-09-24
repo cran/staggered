@@ -8,17 +8,19 @@
 
 The staggered R package computes the efficient estimator for settings
 with randomized treatment timing, based on the theoretical results in
-[Roth and Sant’Anna (2021)](https://arxiv.org/pdf/2102.01291.pdf). If
-units are randomly (or quasi-randomly) assigned to begin treatment at
+[Roth and Sant’Anna (2023)](https://arxiv.org/pdf/2102.01291). If units
+are randomly (or quasi-randomly) assigned to begin treatment at
 different dates, the efficient estimator can potentially offer
 substantial gains over methods that only impose parallel trends. The
 package also allows for calculating the generalized
 difference-in-differences estimators of [Callaway and Sant’Anna
-(2020)](https://www.sciencedirect.com/science/article/pii/S0304407620303948)
-and [Sun and Abraham
-(2020)](https://www.sciencedirect.com/science/article/abs/pii/S030440762030378X)
-and the simple-difference-in-means as special cases. We also provide a
-Stata [implementation](#stata-implementation) via the RCall package.
+(2021)](https://doi.org/10.1016/j.jeconom.2020.12.001) and [Sun and
+Abraham (2021)](https://doi.org/10.1016/j.jeconom.2020.09.006) and the
+simple-difference-in-means as special cases. There is a Stata
+implementation [here](https://github.com/mcaceresb/stata-staggered). (We
+also previously wrote a Stata [implementation](#stata-implementation)
+via the RCall package, but recommend the native Stata package in the
+previous link.)
 
 ## Installation
 
@@ -32,8 +34,8 @@ devtools::install_github("jonathandroth/staggered")
 ## Example
 
 We now illustrate how to use the package by re-creating some of the
-results in the application section of [Roth and Sant’Anna
-(2021)](https://arxiv.org/pdf/2102.01291.pdf). Our data contains a
+results in the application section of \[Roth and Sant’Anna
+(2021)\](<https://arxiv.org/pdf/2102.01291>. Our data contains a
 balanced panel of police officers in Chicago who were randomly given a
 procedural justice training on different dates.
 
@@ -44,30 +46,21 @@ for modifying and plotting the results.
 
 ``` r
 library(staggered) #load the staggered package
-library(dplyr) #load dplyr for data manipulation
-#> 
-#> Attaching package: 'dplyr'
-#> The following objects are masked from 'package:stats':
-#> 
-#>     filter, lag
-#> The following objects are masked from 'package:base':
-#> 
-#>     intersect, setdiff, setequal, union
-library(ggplot2) #load ggplot2 for plotting the results
-library(purrr)
+library(ggplot2)   #load ggplot2 for plotting the results
+#> Warning: package 'ggplot2' was built under R version 4.3.1
 
 df <- staggered::pj_officer_level_balanced #load the officer data
 ```
 
 ### Simple aggregate parameters
 
-We now can call the function calculate\_adjusted\_estimator\_and\_se to
+We now can call the function `calculate_adjusted_estimator_and_se` to
 calculate the efficient estimator. With staggered treatment timing,
 there are several ways to aggregate treatment effects across cohorts and
 time periods. The following block of code calculates the simple,
 calendar-weighted, and cohort-weighted average treatment effects (see
 Section 2.3 of [Roth and Sant’Anna
-(2021)](https://arxiv.org/pdf/2102.01291.pdf) for more about different
+(2021)](https://arxiv.org/pdf/2102.01291) for more about different
 aggregation schemes).
 
 ``` r
@@ -121,7 +114,7 @@ eventPlotResults <- staggered(df = df,
                               estimand = "eventstudy", 
                               eventTime = 0:23)
   
-eventPlotResults %>% head()
+head(eventPlotResults)
 #>        estimate          se   se_neyman eventTime
 #> 1  3.083575e-04 0.002645327 0.002650957         0
 #> 2  2.591678e-03 0.002614563 0.002621513         1
@@ -133,10 +126,9 @@ eventPlotResults %>% head()
 
 ``` r
 #Create event-study plot from the results of the event-study
-eventPlotResults %>% 
-    mutate(ymin_ptwise = estimate + 1.96*se,
-           ymax_ptwise = estimate - 1.96*se)%>%
-  ggplot(aes(x=eventTime, y =estimate)) +
+eventPlotResults$ymin_ptwise <- with(eventPlotResults, estimate + 1.96 * se)
+eventPlotResults$ymax_ptwise <- with(eventPlotResults, estimate - 1.96 * se)
+ggplot(eventPlotResults, aes(x=eventTime, y =estimate)) +
   geom_pointrange(aes(ymin = ymin_ptwise, ymax = ymax_ptwise))+ 
   geom_hline(yintercept =0) +
   xlab("Event Time") + ylab("Estimate") +
@@ -165,7 +157,7 @@ staggered(df = df,
           compute_fisher = T, 
           num_fisher_permutations = 500)
 #>       estimate          se   se_neyman fisher_pval fisher_pval_se_neyman
-#> 1 -0.001126981 0.002115194 0.002119248        0.63                 0.632
+#> 1 -0.001126981 0.002115194 0.002119248       0.642                 0.644
 #>   num_fisher_permutations
 #> 1                     500
 ```
@@ -203,33 +195,37 @@ staggered_sa(df = df,
 ```
 
 The Callaway and Sant’Anna estimator corresponds with calling the
-staggered function with beta=1 (and the default use\_DiD\_A0=1), and the
-Sun and Abraham estimator corresponds with calling staggered with beta=1
-and use\_last\_treated\_only=T. If one is interested in the simple
-difference-in-means, one can call the staggered function with option
-beta=0.
+staggered function with beta=1 (and the default `use_DiD_A0=1`), and the
+Sun and Abraham estimator corresponds with calling staggered with
+`beta=1` and `use_last_treated_only=T`. If one is interested in the
+simple difference-in-means, one can call the staggered function with
+option `beta=0`.
 
 Note that the standard errors returned in the se column are based on the
 design-based approach in Roth & Sant’Anna, and thus will differ somewhat
 from those returned by the did package. The standard errors in
-se\_neyman should be very similar to those returned by the did package,
+`se_neyman` should be very similar to those returned by the did package,
 although not identical in finite samples.
 
 ## Stata implementation
 
-We also provide a Stata implementation (staggered\_stata) via the RCall
-package, which calls the staggered R package from within Stata.
+We also provide a Stata implementation (`staggered_stata`) via the RCall
+package, which calls the staggered R package from within Stata. As
+mentioned above, **we now have a [native Stata
+implementation](https://github.com/mcaceresb/stata-staggered) which we
+recommend using over `staggered_stata`.** However, the instructions are
+preserved below for backwards compatibility.
 
 ### Installation
 
-To install the staggered\_stata package, the user first needs to install
-the github and RCall packages. This can be done with the following
-commands
+To install the `staggered_stata` package, the user first needs to
+install the github and RCall packages. This can be done with the
+following commands
 
     > net install github, from("https://haghish.github.io/github/")
     > github install haghish/rcall, version("2.5.0")
 
-**Important note:** the staggered\_stata package was built under Rcall
+**Important note:** the `staggered_stata` package was built under Rcall
 version 2.5.0, and the recent release of RCall version 3.0 has created
 some compatibility issues. We will try our best to fix these issues, but
 in the meantime it is best to install version 2.5.0, as in the command
@@ -237,7 +233,7 @@ above.
 
 Note that the user must have R installed before installing the RCall
 package. The latest version of R can be downloaded
-[here](https://CRAN.R-project.org/). The staggered\_stata package can
+[here](https://CRAN.R-project.org/). The `staggered_stata` package can
 then be installed with
 
     > github install jonathandroth/staggered_stata
@@ -245,12 +241,12 @@ then be installed with
 The three packages can also be installed by downloading the ado files
 from the package webpages ([github](https://github.com/haghish/github),
 [RCall](https://github.com/haghish/rcall),
-[staggered\_stata](https://github.com/jonathandroth/staggered_stata))
+[staggered_stata](https://github.com/jonathandroth/staggered_stata))
 directly and pasting them into the user’s ado/personal directory.
 
 ### Usage
 
-The syntax for staggered\_stata is very similar to that for the
+The syntax for `staggered_stata` is very similar to that for the
 staggered R package. Below are a few illustrative examples, using the
 same data as above.
 
@@ -259,8 +255,11 @@ same data as above.
     >staggered_cs, y("complaints") g("first_trained") t("period") i("uid") estimand("eventstudy") eventTimeStart(-2) eventTimeEnd(2)
     >staggered_sa, y("complaints") g("first_trained") t("period") i("uid") estimand("cohort")
 
-![Stata examples.](man/figures/Stata_screenshot.png)
+<figure>
+<img src="man/figures/Stata_screenshot.png" alt="Stata examples." />
+<figcaption aria-hidden="true">Stata examples.</figcaption>
+</figure>
 
-The staggered, staggered\_cs, and staggered\_as commands all return a
-vector of coefficients and covariance matrix in ereturn list, and thus
+The `staggered`, `staggered_cs`, and `staggered_as` commands all return
+a vector of coefficients and covariance matrix in ereturn list, and thus
 can be used with any post-estimation command in Stata (e.g. coefplot).
