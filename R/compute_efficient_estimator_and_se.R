@@ -535,7 +535,7 @@ create_Atheta_list_for_event_study <- function(eventTime,
   # Cohorts are weighted by the cohort size (N_g)
 
   maxG <- base::max(g_list)
-  eligible_cohort_index <- base::which( ((g_list + eventTime) < maxG ) & ((g_list + eventTime) <= base::max(t_list) ) )
+  eligible_cohort_index <- base::which( ( pmax(g_list + eventTime, g_list) < maxG ) & ( pmax(g_list + eventTime, g_list) <= base::max(t_list) ) )
   N_g_list <- N_g_DT$N_g
 
   if(base::length(eligible_cohort_index) == 0){
@@ -880,6 +880,12 @@ processDF <- function(df, i, g, t, y){
 #' \cite{Roth, Jonatahan, and Sant'Anna, Pedro H. C. (2021),
 #'   'Efficient Estimation for Staggered Rollout Designs', arXiv: 2102.01291, \url{https://arxiv.org/abs/2102.01291}.}
 #' @examples
+#' \dontshow{
+#'   # restrict threads for CRAN compliance
+#'   dt_threads <- data.table::getDTthreads()
+#'   data.table::setDTthreads(1)
+#' }
+#'
 #' set.seed(1234)
 #' # load the officer data and subset it
 #' df <- pj_officer_level_balanced
@@ -916,6 +922,10 @@ processDF <- function(df, i, g, t, y){
 #'   estimand = "eventstudy",
 #'   eventTime = 0:23)
 #' head(eventPlotResults)
+#' \dontshow{
+#'   # restore thread setting
+#'   data.table::setDTthreads(dt_threads)
+#' }
 #'
 #' @export
 staggered <- function(df,
@@ -1293,6 +1303,12 @@ staggered <- function(df,
 #'   'Difference-in-Differences with Multiple Time Periods', Journal of Econometrics,
 #'   \doi{10.1016/j.jeconom.2020.12.001}.}
 #' @examples
+#' \dontshow{
+#'   # restrict threads for CRAN compliance
+#'   dt_threads <- data.table::getDTthreads()
+#'   data.table::setDTthreads(1)
+#' }
+#'
 #' # Load some libraries
 #' set.seed(1234)
 #' # load the officer data and subset it
@@ -1316,6 +1332,10 @@ staggered <- function(df,
 #' # (month 0 is instantaneous effect)
 #' eventPlotResults <- staggered_cs(df = df, estimand = "eventstudy", eventTime = 0:23)
 #' head(eventPlotResults)
+#' \dontshow{
+#'   # restore thread setting
+#'   data.table::setDTthreads(dt_threads)
+#' }
 #'
 #' @export
 staggered_cs <- function(df,
@@ -1388,6 +1408,12 @@ staggered_cs <- function(df,
 #'   'Estimating dynamic treatment effects in event studies with heterogeneous treatment effects', Forthcoming at the Journal of Econometrics,
 #'   \doi{10.1016/j.jeconom.2020.09.006}.}
 #' @examples
+#' \dontshow{
+#'   # restrict threads for CRAN compliance
+#'   dt_threads <- data.table::getDTthreads()
+#'   data.table::setDTthreads(1)
+#' }
+#'
 #' set.seed(1234)
 #' # load the officer data and subset it
 #' df <- pj_officer_level_balanced
@@ -1410,6 +1436,10 @@ staggered_cs <- function(df,
 #' # (month 0 is instantaneous effect)
 #' eventPlotResults <- staggered_sa(df = df, estimand = "eventstudy", eventTime = 0:23)
 #' head(eventPlotResults)
+#' \dontshow{
+#'   # restore thread setting
+#'   data.table::setDTthreads(dt_threads)
+#' }
 #'
 #' @export
 staggered_sa <- function(df,
